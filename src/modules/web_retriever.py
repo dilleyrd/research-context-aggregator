@@ -3,6 +3,11 @@ import os
 from typing import Optional
 from rich.console import Console
 
+# GoogleWebRetriever is a class that implements an "Agentic Fallback" strategy.
+# When standard academic APIs (like Semantic Scholar) fail to return a direct link,
+# this class searches the open web (via Google) to find the PDF manually, similar to 
+# how a human researcher would type 'filetype:pdf "Paper Title"' into a search bar.
+
 class GoogleWebRetriever:
     """
     Implements an "Agentic Fallback" strategy.

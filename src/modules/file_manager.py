@@ -2,6 +2,13 @@ import os
 import re
 import shutil
 
+# FileManager is a class that handles all filesystem operations.
+# It is initialized with a base path for where all user data will be saved.
+# It has a method to sanitize a string so it can be safely used as a filename.
+# It has a method to create a dedicated folder for the current search query.
+# It has a method to save raw text to a file.
+# It has a method to zip a folder into a ZIP file.
+
 class FileManager:
     """
     A utility class to handle all filesystem operations.

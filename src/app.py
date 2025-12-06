@@ -4,6 +4,11 @@ import sys
 import subprocess
 from dotenv import load_dotenv
 
+# Research Context Aggregator (RCA) is a Streamlit web application that helps researchers
+# find and download influential context for a paper. It uses Semantic Scholar to retrieve
+# the citation graph of a paper, and then uses the citation graph to find and download
+# influential papers that cite the seed paper.
+
 # Import custom modules responsible for specific tasks
 from modules.citation_graph import CitationGraph        # Handles citation graph retrieval from Semantic Scholar    
 from modules.asset_retriever import AssetRetriever      # Handles PDF retrieval from Semantic Scholar
@@ -38,7 +43,16 @@ st.sidebar.header("Configuration")
 api_key_input = st.sidebar.text_input("Semantic Scholar API Key", value=os.getenv("SEMANTIC_SCHOLAR_API_KEY", ""), type="password")
 
 # Slider to determine how many influential references to fetch (Limit: 1-50)
-limit = st.sidebar.slider("Influential References", min_value=1, max_value=50, value=10)
+# Slider to determine how many influential references to fetch (Limit: 1-50)
+limit = st.sidebar.slider("Influential References (per paper)", min_value=1, max_value=50, value=10)
+
+# Depth Slider
+depth = st.sidebar.slider("Search Depth", min_value=1, max_value=2, value=1, help="Level 1 = References. Level 2 = References of References. Warning: Level 2 is slow!")
+if depth > 1:
+    st.sidebar.warning("⚠️ High depth can fetch 100+ papers.")
+
+# Max Total Papers (Safety Brake)
+max_papers = st.sidebar.slider("Max Total Papers (Safety Limit)", min_value=10, max_value=500, value=100, step=10, help="Stop fetching if this many papers are found to prevent crashes.")
 
 # ResearchRabbit Adaptation: Future Context
 # Toggle to include papers that cite the seed paper (Forward lookup)
@@ -133,12 +147,45 @@ if st.session_state.candidate_paper:
 
             # 2. Fetch Citation Graph
             # We ask Semantic Scholar for papers that this paper cites heavily ("Influential Citations").
-            status_container.info("Fetching Citation Graph...")
-            # We need the 'paperId' to request references.
-            references = graph.get_influential_references(getattr(primary_paper, 'paperId', None), limit=limit)
+            # 2. Fetch Citation Graph (Recursive)
+            # We ask Semantic Scholar for papers that this paper cites heavily ("Influential Citations").
             
-            # The list of target papers includes the seed paper itself + its references.
-            targets = [primary_paper] + references
+            # Initialize queues for recursion
+            current_layer = [primary_paper]
+            targets = [primary_paper]
+            seen_ids = set()
+            if getattr(primary_paper, 'paperId', None):
+                seen_ids.add(primary_paper.paperId)
+
+            # Recursive Loop
+            for d in range(depth):
+                status_container.info(f"Fetching Layer {d+1} ({len(current_layer)} papers)...")
+                next_layer = []
+                
+                # Check for explosion
+                if len(targets) >= max_papers:
+                     st.warning(f"Target limit reached ({max_papers} papers). Stopping recursion to prevent crash.")
+                     break
+
+                for parent_paper in current_layer:
+                    parent_id = getattr(parent_paper, 'paperId', None)
+                    if not parent_id:
+                        continue
+                        
+                    # Fetch refs for this parent
+                    refs = graph.get_influential_references(parent_id, limit=limit)
+                    
+                    for ref in refs:
+                        ref_id = getattr(ref, 'paperId', None)
+                        if ref_id and ref_id not in seen_ids:
+                            seen_ids.add(ref_id)
+                            next_layer.append(ref)
+                            targets.append(ref)
+                
+                # Move to next layer
+                current_layer = next_layer
+            
+            log(f"Found {len(targets)} targets total (Depth {depth}).")
             
             # --- Future Context (Forward Citations) ---
             if include_citations:
