@@ -1,0 +1,8 @@
+semanticscholar
+requests
+httpx
+python-dotenv
+rich
+streamlit
+watchdog
+arxiv

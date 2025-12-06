@@ -1,0 +1,21 @@
+# Environment & Secrets
+.env
+.venv/
+env/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Local Data
+Output_Folder/
+output/
+*.zip
+*.pdf
+*.txt
+!requirements.txt
+
+# IDE
+.vscode/
+.idea/
