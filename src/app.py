@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import sys
 import subprocess
+import urllib.parse
 from dotenv import load_dotenv
 
 # Research Context Aggregator (RCA) is a Streamlit web application that helps researchers
@@ -316,11 +317,16 @@ if st.session_state.candidate_paper:
                     if not display_url and arxiv_id:
                             display_url = f"https://arxiv.org/abs/{arxiv_id}"
 
+                # Generate Google Search Link
+                encoded_title = urllib.parse.quote(title)
+                google_search_url = f"https://www.google.com/search?q={encoded_title}"
+
                 results_data.append({
                     "Title": title,
                     "Year": year,
                     "Status": status,
-                    "Link": display_url
+                    "Link": display_url,
+                    "Web": google_search_url
                 })
 
             # --- 4. Metadata Generation (New Phase) ---
@@ -423,6 +429,7 @@ if st.session_state.results_data:
         st.session_state.results_data,
         column_config={
             "Link": st.column_config.LinkColumn("Manual Link", display_text="Open"),
+            "Web": st.column_config.LinkColumn("Web Search", display_text="🔍 Google"),
             "Title": st.column_config.TextColumn("Title", width="large"),
             "Status": st.column_config.TextColumn("Status", width="small")
         },
